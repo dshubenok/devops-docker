@@ -1,0 +1,15 @@
+# дев версия докерфайла
+FROM node:latest as node
+
+WORKDIR /app
+
+# инсталим (ситуация такая же как requirements.txt, смотри ./back/Dockerfile)
+COPY package.json /app/
+RUN npm install
+# копируем остачу
+COPY . /app
+
+EXPOSE 4200
+VOLUME /app
+# запускаем
+CMD ["npm", "run", "start"]

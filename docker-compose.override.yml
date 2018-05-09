@@ -1,0 +1,49 @@
+# дев компоуз файл
+version: "3"
+
+services:
+  nginx:
+    image: nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.dev  # особый длкерфайл
+    volumes:
+      - /etc/letsencrypt  # игнорим летсэнкрипт в деве, потому что тут он нафиг не нужен
+    ports:
+      - "8080:8080"  # открываем порты чтоб можно было зайти
+
+  db:
+    ports:
+      - "5432:5432"  # если захочется по порту зайти в базу, но лучше это делать через запущенный контейнер
+    volumes:
+      # - dbdata:/var/lib/postgresql/data
+      # можно указать другой вольюм если на одной машите тестишь и прод, и дев:
+      - dbdatadev:/var/lib/postgresql/data
+
+  frontend:
+    image: frontend # просто название имеджа
+    # билд из сорцов
+    build:
+      context: ./front
+      dockerfile: Dockerfile.dev  # особый докерфайл
+    ports:
+      - "4200:4200"  # выставь порты реакта
+    volumes:
+      - ./front:/app  # копируем сорцы
+      - /app/node_modules/  # игнорим нод_модули потому что в контейнере свои будут собираться
+    environment:
+      - DEBUG=1  # ставим дебаг флаг, если фронет его как-то использует
+
+  backend:
+    image: backend  # просто название имеджа
+    # билд из сорцов
+    build: ./back  # с дефолтным докерфайлом (Dockerfile)
+    command: ["./run/web.dev.sh"]  # особая команда запуска в деве
+    ports:
+      - "8000:8000"  # выставь порты джанго
+    volumes:
+      - ./back:/app  # копируем сорцы
+      - ./back/google_credentials.json:/app/google_credentials.json  # креденшиалы стронних сервисов для дева
+
+volumes:
+  dbdatadev:

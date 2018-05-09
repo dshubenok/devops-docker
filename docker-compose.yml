@@ -1,0 +1,73 @@
+# основной компоуз файл
+version: "3"
+
+services:
+  nginx:
+    # image: user/my-nginx:latest  # если уже сбилженый имедж есть
+    build: ./nginx
+    hostname: nginx
+    # открываем порты на проде
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - static:/usr/share/nginx/html:ro  # читаем статик файлы из static вольюма
+      - /etc/letsencrypt:/etc/letsencrypt  # указываем путь к letsencrypt если есть (если нету то закиментить это и порт 443)
+      - logs:/var/log  # складируем логи
+    # при запуске энжикса всегда запускаем фронт и бекенд
+    depends_on:
+      - frontend  
+      - backend
+
+  db:
+    image: postgres  # из стандартного имеджа
+    hostname: db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      # складируем данные в вольюм чтоб при пересоздании контейнера он не потерялись
+      - dbdata:/var/lib/postgresql/data
+
+  frontend:
+    # имедж фронта, может быть локальный или путь к режистри, например гугловское: gcr.io/project/frontend:1.0
+    # image: user/frontend:latest 
+    # альтернативно можно сбилдить наместе из сорцов:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    hostname: frontend
+    volumes:
+      - static:/app  # копируем статик файлы в static вольюм
+    depends_on:
+      - backend  # подтягиваем бекенд
+
+  backend:
+    # аналогично бекенд
+    # image: user/backend:latest
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    hostname: backend
+    volumes:
+      # можно выставить чтоб всякие там креденшиалсы подтянуло, если используешь стронние сервисы а ля гугл апи
+      - ./foo-bar-baz/google_credentials.json:/app/google_credentials.json
+      # нужно указать куда бекенд собирает логи что в логальный вольюм их собирать, можно удалить исли все в консоль пишется
+      - logs:/var/log  
+    # в сетингсах джанго нужно будет указать что из енваермента собирал эти данные для базы (в ./back/settings пример):
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_HOST=db
+    env_file:
+      - backend.env  # тут лежит SECRET_KEY для джанго
+    # зависит от сервиса с базой данных
+    depends_on:
+      - db
+
+volumes:
+  dbdata:
+  static:
+  logs:

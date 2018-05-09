@@ -1,0 +1,20 @@
+server {
+	server_name localhost;
+
+	error_log  /var/log/nginx/error.log;
+	access_log /var/log/nginx/access.log;
+
+	client_max_body_size 300M;
+
+	location ~ ^/(api|admin|static)/? {
+		include proxy_params;
+		proxy_pass http://backend:8000;
+	}
+
+	location / {
+		include proxy_params;
+		#  тут будет работать вебпак сервер, а не просто лежать статик файлы, так что нужно перенапрявлять на хост:порт
+		proxy_pass http://frontend:4200;
+	}
+	listen 8080;
+}
